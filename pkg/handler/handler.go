@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -44,5 +45,14 @@ func (h *resourceHandler) proxyHandler(rw http.ResponseWriter, r *http.Request) 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.Transport = h.transport
 	// TODO: set labels
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		defer resp.Body.Close()
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		klog.Infof("Modifying response: %v", string(bodyBytes))
+		return nil
+	}
 	proxy.ServeHTTP(rw, r)
 }
