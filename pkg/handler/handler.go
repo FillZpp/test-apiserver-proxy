@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -46,11 +47,13 @@ func (h *resourceHandler) proxyHandler(rw http.ResponseWriter, r *http.Request) 
 	proxy.Transport = h.transport
 	// TODO: set labels
 	proxy.ModifyResponse = func(resp *http.Response) error {
-		defer resp.Body.Close()
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		oldBody := resp.Body
+		defer oldBody.Close()
+		bodyBytes, err := ioutil.ReadAll(oldBody)
 		if err != nil {
 			return err
 		}
+		resp.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 		klog.Infof("Modifying response: %v", string(bodyBytes))
 		return nil
 	}
